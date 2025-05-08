@@ -2,6 +2,8 @@ import torch
 from pathlib import Path
 from typing import Union, Tuple
 
+from myface.modules.cache import Cache
+
 from boxmot.utils import WEIGHTS
 from boxmot.utils import logger as LOGGER
 from boxmot.utils.torch_utils import select_device
@@ -32,19 +34,25 @@ class ReidAutoBackend():
         """
         super().__init__()
         w = weights[0] if isinstance(weights, list) else weights
-        (
-            self.pt,
-            self.jit,
-            self.onnx,
-            self.xml,
-            self.engine,
-            self.tflite,
-        ) = self.model_type(w)  # get backend
+        cache = Cache()
+        if (reid := cache["reid"].get(w.stem)) is not None:
+            self.model = reid
+            LOGGER.info(f"Loading {w} from cache...")
+        else:
+            (
+                self.pt,
+                self.jit,
+                self.onnx,
+                self.xml,
+                self.engine,
+                self.tflite,
+            ) = self.model_type(w)  # get backend
 
-        self.weights = weights
-        self.device = select_device(device)
-        self.half = half
-        self.model = self.get_backend()
+            self.weights = weights
+            self.device = select_device(device)
+            self.half = half
+            self.model = self.get_backend()
+            cache["reid"][w.stem] = self.model
 
 
     def get_backend(self) -> Union['PyTorchBackend', 'TorchscriptBackend', 'ONNXBackend', 'TensorRTBackend', 'OpenVinoBackend', 'TFLiteBackend']:
