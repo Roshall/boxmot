@@ -349,7 +349,7 @@ class BoostTrack(BaseTracker):
         n_dims = 4
         limit = 13.2767
         mh_dist = self.get_mh_dist_matrix(detections, n_dims)
-        if mh_dist.size == 0 and self.frame_count < 2:
+        if mh_dist.size == 0 or self.frame_count < 2:
             return detections
         min_dists = mh_dist.min(1)
         mask = (min_dists > limit) & (detections[:, 4] < self.det_thresh)
